@@ -29,7 +29,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Version: "0.0.1",
+	Version: "0.0.2",
 	Use:     "notify",
 	Short:   "display a notification on the user desktop",
 	Long: `
