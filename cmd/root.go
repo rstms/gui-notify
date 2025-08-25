@@ -30,7 +30,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Version: "0.0.1",
-	Use:     "notify MESSAGE",
+	Use:     "notify",
 	Short:   "display a notification on the user desktop",
 	Long: `
 generate a user notification message using the appropriate OS interface
@@ -39,13 +39,10 @@ generate a user notification message using the appropriate OS interface
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 	},
-	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("notify: %s\n", args[0])
-	},
 }
 
 func Execute() {
+	fmt.Println("Execute")
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -53,7 +50,7 @@ func Execute() {
 }
 
 func init() {
-	CobraInit()
+	CobraInit(rootCmd)
 	OptionSwitch(rootCmd, "no-wait", "", "fire and forget")
 	OptionSwitch(rootCmd, "force", "", "bypass confirmation prompts")
 }

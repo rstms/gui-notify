@@ -1,0 +1,6 @@
+notify:
+  mail: 
+    hostname: ${SMTP_HOSTNAME}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    recipient: ${TEST_RECIPIENT}

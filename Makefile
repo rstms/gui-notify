@@ -7,6 +7,7 @@ latest_release != gh release list --json tagName --jq '.[0].tagName' | tr -d v
 gitclean = $(if $(shell git status --porcelain),$(error git status is dirty),$(info git status is clean))
 rstms_modules = $(shell awk <go.mod '/^module/{next} /rstms/{print $$1}')
 $(program): build
+logfile = /var/log/$(program)
 
 build: fmt
 	fix go build
@@ -34,12 +35,16 @@ release:
 	@$(if $(update),gh release delete -y v$(version),)
 	gh release create v$(version) --notes "v$(version)"
 
+latest_module_release = $(shell gh --repo $(1) release list --json tagName --jq '.[0].tagName')
+
 update:
-	@echo updating modules
-	@$(foreach module,$(rstms_modules),go get $(module)@latest;)
+	@echo checking dependencies for updated versions 
+	@$(foreach module,$(rstms_modules),go get $(module)@$(call latest_module_release,$(module));)
+	curl -L -o cmd/common.go https://raw.githubusercontent.com/rstms/go-common/master/proxy_common_go
+	sed <cmd/common.go >notify/common.go 's/^package cmd/package notify/'
 
 logclean: 
-	echo >/var/log/$(program)
+	[ -f $(logfile) ] && echo >$(logfile) || true
 
 clean: logclean
 	rm -f $(program) *.core 
