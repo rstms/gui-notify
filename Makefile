@@ -6,7 +6,7 @@ version != cat VERSION
 latest_release != gh release list --json tagName --jq '.[0].tagName' | tr -d v
 gitclean = $(if $(shell git status --porcelain),$(error git status is dirty),$(info git status is clean))
 rstms_modules = $(shell awk <go.mod '/^module/{next} /rstms/{print $$1}')
-icon = $(if $(SYSTEMROOT),rsrc_windows_amd64.syso,,)
+icon = $(if $(SYSTEMROOT),rsrc_windows_amd64.syso,)
 $(program): build
 logfile = /var/log/$(program)
 

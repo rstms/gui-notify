@@ -39,10 +39,15 @@ func Send(message string) error {
 	}
 	subject := prefix + ViperGetString("title")
 	body := []byte(message)
-	log.Printf("to=%s\n", to)
-	log.Printf("from=%s\n", from)
-	log.Printf("subject=%s\n", subject)
-	log.Printf("body:\n%s\n", HexDump(body))
+	params := make(map[string]any)
+	params["to"] = to
+	params["from"] = from
+	params["subject"] = subject
+	params["body"] = string(body)
+	log.Printf("notification: %s\n", FormatJSON(params))
+	if ViperGetBool("debug") {
+		log.Println(HexDump(body))
+	}
 	err = sendmail.Send(to, from, subject, body)
 	if err != nil {
 		return Fatal(err)
