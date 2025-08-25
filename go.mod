@@ -4,7 +4,7 @@ go 1.24.5
 
 require (
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4
-	github.com/rstms/go-common v0.1.31
+	github.com/rstms/go-common v0.1.32
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0

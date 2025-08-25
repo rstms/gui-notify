@@ -22,9 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"fmt"
+	"github.com/rstms/gui-notify/notify"
 	"github.com/spf13/cobra"
 )
 
@@ -39,10 +40,24 @@ generate a user notification message using the appropriate OS interface
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 	},
+	Args: cobra.RangeArgs(0, 1),
+	Run: func(cmd *cobra.Command, args []string) {
+		if ViperGetString("audio") == "help" {
+			for _, name := range notify.AudioNames {
+				fmt.Println(name)
+			}
+			return
+		}
+		message := "notification"
+		if len(args) > 0 {
+			message = args[0]
+		}
+		err := notify.Send(message)
+		cobra.CheckErr(err)
+	},
 }
 
 func Execute() {
-	fmt.Println("Execute")
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -53,4 +68,10 @@ func init() {
 	CobraInit(rootCmd)
 	OptionSwitch(rootCmd, "no-wait", "", "fire and forget")
 	OptionSwitch(rootCmd, "force", "", "bypass confirmation prompts")
+	OptionString(rootCmd, "id", "i", rootCmd.Name(), "notification AppID")
+	OptionString(rootCmd, "title", "t", "", "notificaton title")
+	OptionSwitch(rootCmd, "long", "L", "request long duration")
+	OptionString(rootCmd, "audio", "a", "silent", "audio name (help for list)")
+	OptionString(rootCmd, "icon", "I", "", "icon file (PNG format)")
+	OptionSwitch(rootCmd, "loop", "", "loop audio")
 }

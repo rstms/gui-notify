@@ -8,7 +8,9 @@ import (
 	"strings"
 )
 
-func Send(title, message string) error {
+func Send(message string) error {
+	ViperSetDefault("id", ProgramName())
+	ViperSetDefault("title", "notification")
 	ViperSetDefault("mail.sender", "NOTIFY_DAEMON")
 	ViperSetDefault("mail.subject_prefix", "Notification")
 
@@ -31,11 +33,11 @@ func Send(title, message string) error {
 		}
 		from += "@" + fqdn
 	}
-	prefix := ViperGetString("mail.subject_prefix")
+	prefix := ViperGetString("id")
 	if prefix != "" {
 		prefix += ": "
 	}
-	subject := prefix + title
+	subject := prefix + ViperGetString("title")
 	body := []byte(message)
 	log.Printf("to=%s\n", to)
 	log.Printf("from=%s\n", from)

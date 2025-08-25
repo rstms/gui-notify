@@ -6,10 +6,11 @@ version != cat VERSION
 latest_release != gh release list --json tagName --jq '.[0].tagName' | tr -d v
 gitclean = $(if $(shell git status --porcelain),$(error git status is dirty),$(info git status is clean))
 rstms_modules = $(shell awk <go.mod '/^module/{next} /rstms/{print $$1}')
+icon = $(if $(SYSTEMROOT),rsrc_windows_amd64.syso,,)
 $(program): build
 logfile = /var/log/$(program)
 
-build: fmt
+build: fmt $(icon)
 	fix go build
 
 fmt: go.sum
@@ -47,7 +48,7 @@ logclean:
 	[ -f $(logfile) ] && echo >$(logfile) || true
 
 clean: logclean
-	rm -f $(program) *.core 
+	rm -f $(program) $(program).exe *.syso *.rc *.core
 	go clean
 
 sterile: clean
@@ -56,3 +57,7 @@ sterile: clean
 	go clean -cache
 	go clean -modcache
 	rm -f go.mod go.sum
+
+rsrc_windows_amd64.syso: notify.ico
+	rsrc 2>/dev/null || go install github.com/akavel/rsrc@latest
+	rsrc -arch amd64 -ico notify.ico -o $@

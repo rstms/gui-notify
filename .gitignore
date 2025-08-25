@@ -2,4 +2,6 @@
 *.core
 *.pem
 gui-notify
+gui-notify.exe
 notes
+*.syso
