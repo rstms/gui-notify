@@ -22,16 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var rootCmd = &cobra.Command{
@@ -47,7 +41,7 @@ generate a user notification message using the appropriate OS interface
 	},
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("notify: %s\n", args[1])
+		fmt.Printf("notify: %s\n", args[0])
 	},
 }
 
@@ -59,13 +53,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(InitConfig)
-
-	OptionString(rootCmd, "config", "c", "", "config file")
-	OptionString(rootCmd, "logfile", "", "", "log filename")
+	CobraInit()
 	OptionSwitch(rootCmd, "no-wait", "", "fire and forget")
-	cacheDir, err := os.UserCacheDir()
-	cobra.CheckErr(err)
-	defaultCacheDir := filepath.Join(cacheDir, rootCmd.Name())
-	OptionString(rootCmd, "cache-dir", "", defaultCacheDir, "cache directory")
+	OptionSwitch(rootCmd, "force", "", "bypass confirmation prompts")
 }

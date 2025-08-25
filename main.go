@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "./cmd"
+import "github.com/rstms/gui-notify/cmd"
 
 func main() {
 	cmd.Execute()

@@ -1,0 +1,4 @@
+.postactivate
+*.core
+*.pem
+gui-notify

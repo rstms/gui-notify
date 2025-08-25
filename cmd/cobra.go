@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	common "github.com/rstms/go-common"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -11,11 +11,16 @@ import (
 	"strings"
 )
 
-var ViperPrefix = ""
-var LogFile *os.File
+var viperPrefix string
+var configFilename string
+var logFile *os.File
 
-func ViperKey(name string) string {
-	return ViperPrefix + strings.ReplaceAll(name, "-", "_")
+func OptionKey(cmd *cobra.Command, key string) string {
+	prefix := rootCmd.Name() + "."
+	if cmd != rootCmd {
+		prefix += cmd.Name() + "."
+	}
+	return strings.ReplaceAll(prefix+key, "-", "_")
 }
 
 func OptionSwitch(cmd *cobra.Command, name, flag, description string) {
@@ -26,14 +31,14 @@ func OptionSwitch(cmd *cobra.Command, name, flag, description string) {
 		} else {
 			rootCmd.PersistentFlags().BoolP(name, flag, false, description)
 		}
-		viper.BindPFlag(ViperKey(name), rootCmd.PersistentFlags().Lookup(name))
+		viper.BindPFlag(OptionKey(cmd, name), rootCmd.PersistentFlags().Lookup(name))
 	} else {
 		if flag == "" {
 			cmd.Flags().Bool(name, false, description)
 		} else {
 			cmd.Flags().BoolP(name, flag, false, description)
 		}
-		viper.BindPFlag(ViperKey(name), cmd.Flags().Lookup(name))
+		viper.BindPFlag(OptionKey(cmd, name), cmd.Flags().Lookup(name))
 	}
 }
 
@@ -46,20 +51,20 @@ func OptionString(cmd *cobra.Command, name, flag, defaultValue, description stri
 			rootCmd.PersistentFlags().StringP(name, flag, defaultValue, description)
 		}
 
-		viper.BindPFlag(ViperKey(name), rootCmd.PersistentFlags().Lookup(name))
+		viper.BindPFlag(OptionKey(cmd, name), rootCmd.PersistentFlags().Lookup(name))
 	} else {
 		if flag == "" {
 			cmd.PersistentFlags().String(name, defaultValue, description)
 		} else {
 			cmd.PersistentFlags().StringP(name, flag, defaultValue, description)
 		}
-		viper.BindPFlag(ViperKey(name), cmd.PersistentFlags().Lookup(name))
+		viper.BindPFlag(OptionKey(cmd, name), cmd.PersistentFlags().Lookup(name))
 	}
 }
 
-func OpenLog() {
+func openLog() {
 	filename := viper.GetString("logfile")
-	LogFile = nil
+	logFile = nil
 	if filename == "stdout" || filename == "-" {
 		log.SetOutput(os.Stdout)
 	} else if filename == "stderr" || filename == "" {
@@ -69,74 +74,41 @@ func OpenLog() {
 		if err != nil {
 			log.Fatalf("failed opening log file: %v", err)
 		}
-		LogFile = fp
-		log.SetOutput(LogFile)
+		logFile = fp
+		log.SetOutput(logFile)
 		log.SetPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
 		log.SetFlags(log.Ldate | log.Ltime | log.Lmsgprefix)
 		log.Printf("%s v%s startup\n", rootCmd.Name(), rootCmd.Version)
-		cobra.OnFinalize(CloseLog)
+		cobra.OnFinalize(closeLog)
 	}
 	if viper.GetBool("debug") {
 		log.SetFlags(log.Flags() | log.Lshortfile)
 	}
 }
 
-func CloseLog() {
-	if LogFile != nil {
+func closeLog() {
+	if logFile != nil {
 		log.Println("shutdown")
-		err := LogFile.Close()
+		err := logFile.Close()
 		cobra.CheckErr(err)
-		LogFile = nil
+		logFile = nil
 	}
 }
 
-func FormatJSON(v any) string {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		log.Fatalf("failed formatting JSON: %v", err)
-	}
-	return string(data)
-}
-
-func IsDir(path string) bool {
-	stat, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return stat.IsDir()
-}
-
-func IsFile(pathname string) bool {
-	_, err := os.Stat(pathname)
-	return !os.IsNotExist(err)
-}
-
-func ExpandPath(pathname string) string {
-	if len(pathname) > 1 && pathname[0] == '~' {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Fatalf("failed getting user home dir: %v", err)
-		}
-		pathname = filepath.Join(home, pathname[1:])
-	}
-	pathname = os.ExpandEnv(pathname)
-	return pathname
-}
-
-func InitConfig() {
-	viper.SetEnvPrefix(strings.ToLower(rootCmd.Name()))
+func initConfig() {
+	name := strings.ToLower(rootCmd.Name())
+	viper.SetEnvPrefix(name)
 	viper.AutomaticEnv()
-	filename := viper.GetString("config")
-	if filename != "" {
-		viper.SetConfigFile(filename)
+	if configFilename != "" {
+		viper.SetConfigFile(configFilename)
 	} else {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 		userConfig, err := os.UserConfigDir()
 		cobra.CheckErr(err)
-		viper.AddConfigPath(filepath.Join(home, "."+rootCmd.Name()))
-		viper.AddConfigPath(filepath.Join(userConfig, rootCmd.Name()))
-		viper.AddConfigPath(filepath.Join("/etc", rootCmd.Name()))
+		viper.AddConfigPath(filepath.Join(home, "."+name))
+		viper.AddConfigPath(filepath.Join(userConfig, name))
+		viper.AddConfigPath(filepath.Join("/etc", name))
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("config")
 	}
@@ -147,8 +119,24 @@ func InitConfig() {
 			cobra.CheckErr(err)
 		}
 	}
-	OpenLog()
+	openLog()
 	if viper.ConfigFileUsed() != "" && viper.GetBool("verbose") {
 		log.Println("Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func CobraInit() {
+	common.Init(rootCmd.Name(), rootCmd.Version)
+	cacheDir, err := os.UserCacheDir()
+	cobra.CheckErr(err)
+	defaultCacheDir, err := TildePath(filepath.Join(cacheDir, rootCmd.Name()))
+	cobra.CheckErr(err)
+
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVar(&configFilename, "config-file", "", "config file")
+	OptionString(rootCmd, "logfile", "", "", "log filename")
+	OptionSwitch(rootCmd, "verbose", "v", "enable status output")
+	OptionSwitch(rootCmd, "debug", "d", "enable diagnostic output")
+	OptionString(rootCmd, "cache-dir", "", defaultCacheDir, "cache directory")
 }
